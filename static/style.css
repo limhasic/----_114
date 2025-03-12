@@ -1,0 +1,52 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #e0f7fa;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.player {
+    border: 2px solid #00796b;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px;
+    background-color: #ffffff;
+    width: 300px;
+}
+
+.header {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.input-section {
+    margin-bottom: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #00796b;
+    padding: 10px;
+    text-align: center;
+}
+
+.letter {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    margin: 2px;
+    border-radius: 5px;
+    color: white;
+}
+
+.apple { background-color: red; }
+.mushroom { background-color: brown; }
+.none { background-color: gray; } 

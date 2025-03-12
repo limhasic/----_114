@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>쌍근 단어 게임 - {{ room_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6200ea;
+            --secondary-color: #b388ff;
+            --correct-color: #4caf50;
+            --present-color: #ff9800;
+            --absent-color: #9e9e9e;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --confirmed-color: #ff9800;
+            --excluded-color: #ff5252;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1000px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .player-list, .game-board, .leaderboard {
+                grid-column: 1;
+            }
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .player-list {
+            grid-column: 1 / 2;
+        }
+
+        .game-board {
+            grid-column: 2 / 3;
+        }
+
+        .leaderboard {
+            grid-column: 3 / 4;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .player-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .player-item.current {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .player-item.win {
+            background-color: var(--correct-color);
+            color: white;
+        }
+
+        .player-item.lose {
+            background-color: var(--absent-color);
+            color: white;
+        }
+
+        .player-status {
+            display: flex;
+            align-items: center;
+        }
+
+        .status-icon {
+            margin-right: 5px;
+        }
+
+        .input-section {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        #guess-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px 0 0 5px;
+            font-size: 16px;
+        }
+
+        #submit-btn {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #submit-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .restart-btn {
+            display: none;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .restart-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .game-over-message {
+            display: none;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #f8d7da;
+            color: #721c24;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .guess-grid {
+            margin-top: 20px;
+        }
+
+        .guess-result.card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: var(--card-color);
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .guess-text {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .hint-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .hint-icon {
+            font-size: 1.5em;
+            margin-left: 10px;
+        }
+
+        .player-selector {
+            margin-bottom: 20px;
+        }
+
+        .player-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        .attempts-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .attempts-count {
+            color: var(--primary-color);
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            10% { transform: translateX(-5px); }
+            20% { transform: translateX(5px); }
+            30% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            50% { transform: translateX(-5px); }
+            60% { transform: translateX(5px); }
+            70% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+            90% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .hint-guide {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .hint-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        
+        .keyboard {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eee;
+            border-radius: 10px;
+        }
+
+        .keyboard-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .key {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 0 4px 4px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+
+        .key:hover {
+            background-color: #f0f0f0;
+        }
+
+        .key.confirmed {
+            background-color: var(--confirmed-color);
+            color: white;
+            border-color: var(--confirmed-color);
+        }
+
+        .key.excluded {
+            background-color: var(--excluded-color);
+            color: white;
+            border-color: var(--excluded-color);
+        }
+        
+        .key-special {
+            width: auto;
+            padding: 0 15px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .leaderboard-item:nth-child(1) {
+            background-color: gold;
+            font-weight: bold;
+        }
+        
+        .leaderboard-item:nth-child(2) {
+            background-color: silver;
+        }
+        
+        .leaderboard-item:nth-child(3) {
+            background-color: #cd7f32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>쌍근 단어 게임</h1>
+            <div>방 이름: {{ room_name }} | 사용자: {{ username }}</div>
+        </div>
+
+        <div class="player-list card">
+            <h2>플레이어 목록</h2>
+            <div id="player-list-container">
+                <!-- 플레이어 목록은 JavaScript로 동적 생성 -->
+            </div>
+        </div>
+
+        <div class="game-board card">
+            <div class="player-selector">
+                <select id="player-select" onchange="switchPlayer(this.value)">
+                    <option value="{{ username }}">내 게임</option>
+                    <!-- 다른 플레이어는 동적으로 추가됨 -->
+                </select>
+            </div>
+            
+            <h2><span id="current-player">{{ username }}</span>님의 게임</h2>
+            
+            <div class="hint-guide">
+                <div class="hint-item">
+                    <span class="hint-icon">🥕</span> 정확히 일치
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">🍄</span> 첫 자음 포함 2개 이상 일치
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">🧄</span> 첫 자음 불일치, 나머지 2개 이상 일치
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">🍆</span> 자음·모음 중 하나만 일치
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">🍌</span> 반대편 글자에서 1개 이상 일치
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">🍎</span> 완전 불일치
+                </div>
+            </div>
+
+            <div class="attempts-info">
+                <span>남은 기회: <span id="attempts-count" class="attempts-count">7</span></span>
+                <span>현재 상태: <span id="game-status">진행 중</span></span>
+            </div>
+            
+            <div class="input-section" id="input-section">
+                <input type="text" id="guess-input" maxlength="2" placeholder="두 글자 입력" autocomplete="off">
+                <button id="submit-btn">제출</button>
+            </div>
+
+            <div id="guess-grid" class="guess-grid">
+                <!-- 추측 결과는 JavaScript로 동적 생성 -->
+            </div>
+            
+            <div class="game-over-message" id="game-over-message"></div>
+            <button id="restart-btn" class="restart-btn">새 게임 시작</button>
+            
+            <!-- 가상 키보드 추가 -->
+            <div class="keyboard">
+                <div class="keyboard-title">자모음 힌트</div>
+                <div class="keyboard-row">
+                    <div class="key" data-char="ㄱ">ㄱ</div>
+                    <div class="key" data-char="ㄲ">ㄲ</div>
+                    <div class="key" data-char="ㄴ">ㄴ</div>
+                    <div class="key" data-char="ㄷ">ㄷ</div>
+                    <div class="key" data-char="ㄸ">ㄸ</div>
+                    <div class="key" data-char="ㄹ">ㄹ</div>
+                    <div class="key" data-char="ㅁ">ㅁ</div>
+                    <div class="key" data-char="ㅂ">ㅂ</div>
+                    <div class="key" data-char="ㅃ">ㅃ</div>
+                    <div class="key" data-char="ㅅ">ㅅ</div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key" data-char="ㅆ">ㅆ</div>
+                    <div class="key" data-char="ㅇ">ㅇ</div>
+                    <div class="key" data-char="ㅈ">ㅈ</div>
+                    <div class="key" data-char="ㅉ">ㅉ</div>
+                    <div class="key" data-char="ㅊ">ㅊ</div>
+                    <div class="key" data-char="ㅋ">ㅋ</div>
+                    <div class="key" data-char="ㅌ">ㅌ</div>
+                    <div class="key" data-char="ㅍ">ㅍ</div>
+                    <div class="key" data-char="ㅎ">ㅎ</div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key" data-char="ㅏ">ㅏ</div>
+                    <div class="key" data-char="ㅐ">ㅐ</div>
+                    <div class="key" data-char="ㅑ">ㅑ</div>
+                    <div class="key" data-char="ㅒ">ㅒ</div>
+                    <div class="key" data-char="ㅓ">ㅓ</div>
+                    <div class="key" data-char="ㅔ">ㅔ</div>
+                    <div class="key" data-char="ㅕ">ㅕ</div>
+                    <div class="key" data-char="ㅖ">ㅖ</div>
+                    <div class="key" data-char="ㅗ">ㅗ</div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key" data-char="ㅛ">ㅛ</div>
+                    <div class="key" data-char="ㅜ">ㅜ</div>
+                    <div class="key" data-char="ㅠ">ㅠ</div>
+                    <div class="key" data-char="ㅡ">ㅡ</div>
+                    <div class="key" data-char="ㅣ">ㅣ</div>
+                    <div class="key" data-char="ㅘ">ㅘ</div>
+                    <div class="key" data-char="ㅙ">ㅙ</div>
+                    <div class="key" data-char="ㅚ">ㅚ</div>
+                    <div class="key" data-char="ㅝ">ㅝ</div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key" data-char="ㅞ">ㅞ</div>
+                    <div class="key" data-char="ㅟ">ㅟ</div>
+                    <div class="key" data-char="ㅢ">ㅢ</div>
+                    <div class="key key-special" id="key-backspace">지우기</div>
+                    <div class="key key-special" id="key-submit">제출</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard card">
+            <h2>리더보드</h2>
+            <div id="leaderboard-container">
+                <!-- 리더보드는 JavaScript로 동적 생성 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const roomName = "{{ room_name }}";
+        const username = "{{ username }}";
+        let maxAttempts = 7;
+        let currentAttempt = 0;
+        let gameStatus = 'playing'; // playing, win, lose
+        let currentViewingPlayer = username;
+        
+        // 게임 보드 초기화
+        function initializeGameBoard() {
+            const guessGrid = document.getElementById('guess-grid');
+            guessGrid.innerHTML = '';
+        }
+        
+        // 플레이어 전환
+        function switchPlayer(selectedUsername) {
+            currentViewingPlayer = selectedUsername;
+            document.getElementById('current-player').textContent = selectedUsername;
+            
+            const isSpectating = selectedUsername !== username;
+            const inputSection = document.getElementById('input-section');
+            inputSection.style.display = isSpectating ? 'none' : 'block';
+            
+            // 선택한 플레이어의 게임 상태 요청
+            socket.emit('get_player_state', {
+                room: roomName,
+                target_username: selectedUsername
+            });
+            
+            // 플레이어 목록 UI 업데이트
+            updatePlayerListUI();
+        }
+        
+        // 플레이어 목록 업데이트
+        function updatePlayerList(players) {
+            const playerListContainer = document.getElementById('player-list-container');
+            playerListContainer.innerHTML = '';
+            
+            const playerSelect = document.getElementById('player-select');
+            playerSelect.innerHTML = '';
+            
+            // 자신을 첫 번째 옵션으로
+            const selfOption = document.createElement('option');
+            selfOption.value = username;
+            selfOption.textContent = '내 게임';
+            playerSelect.appendChild(selfOption);
+            
+            players.forEach(player => {
+                // 플레이어 목록에 추가
+                const playerItem = document.createElement('div');
+                playerItem.className = 'player-item';
+                if (player.username === currentViewingPlayer) {
+                    playerItem.classList.add('current');
+                }
+                
+                if (player.status === 'win') {
+                    playerItem.classList.add('win');
+                } else if (player.status === 'lose') {
+                    playerItem.classList.add('lose');
+                }
+                
+                playerItem.onclick = () => switchPlayer(player.username);
+                
+                const playerName = document.createElement('div');
+                playerName.className = 'player-name';
+                playerName.textContent = player.username === username ? `${player.username} (나)` : player.username;
+                
+                const playerStatus = document.createElement('div');
+                playerStatus.className = 'player-status';
+                
+                let statusText = '';
+                let statusIcon = '';
+                
+                if (player.status === 'win') {
+                    statusText = '승리';
+                    statusIcon = '🏆';
+                } else if (player.status === 'lose') {
+                    statusText = '패배';
+                    statusIcon = '💔';
+                } else {
+                    statusText = `${player.attempts}/${maxAttempts}`;
+                    statusIcon = '🎮';
+                }
+                
+                if (statusIcon) {
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'status-icon';
+                    iconSpan.textContent = statusIcon;
+                    playerStatus.appendChild(iconSpan);
+                }
+                
+                const statusSpan = document.createElement('span');
+                statusSpan.textContent = statusText;
+                playerStatus.appendChild(statusSpan);
+                
+                playerItem.appendChild(playerName);
+                playerItem.appendChild(playerStatus);
+                playerListContainer.appendChild(playerItem);
+                
+                // 다른 플레이어를 드롭다운에 추가
+                if (player.username !== username) {
+                    const option = document.createElement('option');
+                    option.value = player.username;
+                    option.textContent = `${player.username}의 게임`;
+                    playerSelect.appendChild(option);
+                }
+            });
+        }
+        
+        // 플레이어 목록 UI 업데이트
+        function updatePlayerListUI() {
+            const playerItems = document.querySelectorAll('.player-item');
+            playerItems.forEach(item => {
+                const playerName = item.querySelector('.player-name').textContent.replace(' (나)', '');
+                if (playerName === currentViewingPlayer) {
+                    item.classList.add('current');
+                } else {
+                    item.classList.remove('current');
+                }
+            });
+        }
+        
+        // 리더보드 업데이트
+        function updateLeaderboard(leaderboard) {
+            const leaderboardContainer = document.getElementById('leaderboard-container');
+            leaderboardContainer.innerHTML = '';
+            
+            if (leaderboard.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = '리더보드가 비어있습니다.';
+                leaderboardContainer.appendChild(emptyMessage);
+                return;
+            }
+            
+            leaderboard.forEach((entry, index) => {
+                const leaderboardItem = document.createElement('div');
+                leaderboardItem.className = 'leaderboard-item';
+                
+                const rankName = document.createElement('div');
+                rankName.textContent = `${index + 1}. ${entry.username}`;
+                
+                const rankScore = document.createElement('div');
+                rankScore.textContent = `${entry.score}점`;
+                
+                leaderboardItem.appendChild(rankName);
+                leaderboardItem.appendChild(rankScore);
+                leaderboardContainer.appendChild(leaderboardItem);
+            });
+        }
+        
+        // 한글 자모 분해 함수
+        function decomposeHangul(char) {
+            if (!char || char.length === 0) return null;
+            
+            const code = char.charCodeAt(0);
+            
+            // 한글 범위 체크 (가-힣)
+            if (code < 0xAC00 || code > 0xD7A3) return null;
+            
+            // 한글 분해 계산
+            const cho = Math.floor((code - 0xAC00) / (21 * 28));
+            const jung = Math.floor(((code - 0xAC00) % (21 * 28)) / 28);
+            const jong = (code - 0xAC00) % 28;
+            
+            // 초성 배열
+            const choSet = [
+                'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ',
+                'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+            ];
+            
+            // 중성 배열
+            const jungSet = [
+                'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ',
+                'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ',
+                'ㅣ'
+            ];
+            
+            // 종성 배열
+            const jongSet = [
+                '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ',
+                'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ',
+                'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+            ];
+            
+            return {
+                cho: choSet[cho],
+                jung: jungSet[jung],
+                jong: jong > 0 ? jongSet[jong] : null
+            };
+        }
+        
+        // 복합 자모 분리 함수
+        function groupJamo(jamo) {
+            // 겹받침 분리
+            const compoundJongMap = {
+                'ㄳ': ['ㄱ', 'ㅅ'],
+                'ㄵ': ['ㄴ', 'ㅈ'],
+                'ㄶ': ['ㄴ', 'ㅎ'],
+                'ㄺ': ['ㄹ', 'ㄱ'],
+                'ㄻ': ['ㄹ', 'ㅁ'],
+                'ㄼ': ['ㄹ', 'ㅂ'],
+                'ㄽ': ['ㄹ', 'ㅅ'],
+                'ㄾ': ['ㄹ', 'ㅌ'],
+                'ㄿ': ['ㄹ', 'ㅍ'],
+                'ㅀ': ['ㄹ', 'ㅎ'],
+                'ㅄ': ['ㅂ', 'ㅅ']
+            };
+            
+            // 겹모음 분리
+            const compoundJungMap = {
+                'ㅘ': ['ㅗ', 'ㅏ'],
+                'ㅙ': ['ㅗ', 'ㅐ'],
+                'ㅚ': ['ㅗ', 'ㅣ'],
+                'ㅝ': ['ㅜ', 'ㅓ'],
+                'ㅞ': ['ㅜ', 'ㅔ'],
+                'ㅟ': ['ㅜ', 'ㅣ'],
+                'ㅢ': ['ㅡ', 'ㅣ']
+            };
+            
+            // 겹자음 분리
+            const compoundChoMap = {
+                'ㄲ': ['ㄱ', 'ㄱ'],
+                'ㄸ': ['ㄷ', 'ㄷ'],
+                'ㅃ': ['ㅂ', 'ㅂ'],
+                'ㅆ': ['ㅅ', 'ㅅ'],
+                'ㅉ': ['ㅈ', 'ㅈ']
+            };
+            
+            if (compoundJongMap[jamo]) return compoundJongMap[jamo];
+            if (compoundJungMap[jamo]) return compoundJungMap[jamo];
+            if (compoundChoMap[jamo]) return compoundChoMap[jamo];
+            
+            return [jamo];
+        }
+        
+        // 키보드 힌트 업데이트
+        function updateKeyboard(guess, feedback) {
+            for (let i = 0; i < guess.length; i++) {
+                const char = guess[i];
+                const jamo = decomposeHangul(char);
+                if (!jamo) continue;
+                
+                const hint = feedback[i];
+                
+                // 자모음 요소 찾기 (복합 자모는 분리해서 처리)
+                updateKeyColor(jamo.cho, hint);
+                updateKeyColor(jamo.jung, hint);
+                if (jamo.jong) {
+                    const jongGroups = groupJamo(jamo.jong);
+                    jongGroups.forEach(j => updateKeyColor(j, hint));
+                }
+            }
+        }
+        
+        // 키 색상 업데이트
+        function updateKeyColor(jamo, hint) {
+            const keyElement = document.querySelector(`.key[data-char="${jamo}"]`);
+            if (!keyElement) return;
+            
+            if (hint === 'carrot' || hint === 'mushroom' || hint === 'garlic') {
+                // 정확히 일치 또는 일부 일치하는 경우 - 확정 (주황색)
+                keyElement.classList.add('confirmed');
+                keyElement.classList.remove('excluded');
+            } else if (hint === 'apple') {
+                // 완전 불일치인 경우 - 제외 (빨간색)
+                // 이미 확정된 키는 색상 변경하지 않음
+                if (!keyElement.classList.contains('confirmed')) {
+                    keyElement.classList.add('excluded');
+                }
+            } else {
+                // 그 외의 경우 - 기본 색상 (하얀색)
+                keyElement.classList.remove('confirmed', 'excluded');
+            }
+        }
+        
+        // 키보드 초기화
+        function resetKeyboard() {
+            document.querySelectorAll('.key').forEach(key => {
+                key.classList.remove('confirmed', 'excluded');
+            });
+        }
+        
+        // 추측 결과 업데이트
+        function getHintEmoji(type) {
+            return hintEmojis[type] || '❓';
+        }
+            
+        function updateGuessResult(attempt, guess, feedback) {
+            const guessGrid = document.getElementById('guess-grid');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'guess-result card'; // 카드 스타일 추가
+            
+            const guessText = document.createElement('span');
+            guessText.className = 'guess-text';
+            guessText.textContent = guess;
+            
+            const hintContainer = document.createElement('div');
+            hintContainer.className = 'hint-container';
+            
+            feedback.forEach(hint => {
+                const hintSpan = document.createElement('span');
+                hintSpan.className = 'hint-icon';
+                hintSpan.textContent = getHintEmoji(hint);
+                hintContainer.appendChild(hintSpan);
+            });
+            
+            resultDiv.appendChild(guessText);
+            resultDiv.appendChild(hintContainer);
+            guessGrid.appendChild(resultDiv);
+            
+            // 키보드 힌트 업데이트
+            if (currentViewingPlayer === username) {
+                updateKeyboard(guess, feedback);
+            }
+        }
+        
+        // 다른 플레이어의 게임 보드 로딩
+        function loadPlayerGameBoard(data) {
+            const guessGrid = document.getElementById('guess-grid');
+            guessGrid.innerHTML = '';
+            
+            // 키보드 초기화 (자신의 게임인 경우만)
+            if (data.username === username) {
+                resetKeyboard();
+            }
+            
+            // 각각의 추측과 피드백 히스토리 표시
+            if (data.feedback_history && data.feedback_history.length > 0) {
+                data.feedback_history.forEach((history, index) => {
+                    updateGuessResult(index, history.guess, history.feedback);
+                });
+            }
+            
+            // 게임 상태 업데이트
+            if (data.status === 'win') {
+                document.getElementById('game-status').textContent = '승리!';
+            } else if (data.status === 'lose') {
+                document.getElementById('game-status').textContent = '패배';
+            } else {
+                document.getElementById('game-status').textContent = '진행 중';
+            }
+            
+            // 남은 시도 횟수 업데이트
+            document.getElementById('attempts-count').textContent = maxAttempts - data.attempts;
+        }
+        
+        // 소켓 이벤트 리스너
+        socket.on('connect', () => {
+            socket.emit('join', { room: roomName, username: username });
+        });
+        
+        socket.on('room_state', (data) => {
+            maxAttempts = data.max_attempts;
+            document.getElementById('attempts-count').textContent = maxAttempts;
+            updatePlayerList(data.players);
+        });
+        
+        socket.on('player_joined', (data) => {
+            console.log(`${data.username} 님이 입장했습니다.`);
+        });
+        
+        socket.on('players_update', (data) => {
+            updatePlayerList(data.players);
+        });
+        
+        socket.on('guess_result', (data) => {
+            if (data.username === username) {
+                // 자신의 게임인 경우
+                currentAttempt = data.attempts;
+                document.getElementById('attempts-count').textContent = data.remaining;
+                updateGuessResult(data.attempts - 1, data.guess, data.feedback);
+            } else if (data.username === currentViewingPlayer) {
+                // 현재 관전 중인 플레이어의 게임인 경우
+                document.getElementById('attempts-count').textContent = data.remaining;
+                updateGuessResult(data.attempts - 1, data.guess, data.feedback);
+            }
+        });
+        
+        socket.on('game_over', (data) => {
+            if (data.username === username) {
+                gameStatus = data.result;
+                
+                if (data.result === 'win') {
+                    document.getElementById('game-status').textContent = '승리!';
+                    document.getElementById('game-over-message').textContent = `축하합니다! 정답 "${data.correct_word}"을(를) 맞추셨습니다! 점수: ${data.score}점`;
+                } else {
+                    document.getElementById('game-status').textContent = '패배';
+                    document.getElementById('game-over-message').textContent = `아쉽습니다. 정답은 "${data.correct_word}" 입니다.`;
+                }
+                
+                if (currentViewingPlayer === username) {
+                    document.getElementById('game-over-message').style.display = 'block';
+                    document.getElementById('restart-btn').style.display = 'block';
+                    document.getElementById('guess-input').disabled = true;
+                    document.getElementById('submit-btn').disabled = true;
+                }
+            } else if (data.username === currentViewingPlayer) {
+                // 현재 관전 중인 플레이어의 게임이 종료된 경우
+                if (data.result === 'win') {
+                    document.getElementById('game-status').textContent = '승리!';
+                    document.getElementById('game-over-message').textContent = `${data.username}님이 정답 "${data.correct_word}"을(를) 맞추셨습니다!`;
+                } else {
+                    document.getElementById('game-status').textContent = '패배';
+                    document.getElementById('game-over-message').textContent = `${data.username}님의 게임이 종료되었습니다. 정답은 "${data.correct_word}" 입니다.`;
+                }
+                
+                document.getElementById('game-over-message').style.display = 'block';
+            }
+        });
+        
+        socket.on('leaderboard_update', (data) => {
+            updateLeaderboard(data.leaderboard);
+        });
+        
+        socket.on('player_state_update', (data) => {
+            currentViewingPlayer = data.username;
+            loadPlayerGameBoard(data);
+            
+            // 게임 상태에 따라 UI 업데이트
+            if (data.status === 'win' || data.status === 'lose') {
+                document.getElementById('game-over-message').style.display = 'block';
+                
+                if (data.status === 'win') {
+                    document.getElementById('game-over-message').textContent = `${data.username}님이 게임에서 승리했습니다!`;
+                } else {
+                    document.getElementById('game-over-message').textContent = `${data.username}님의 게임이 종료되었습니다.`;
+                }
+            } else {
+                document.getElementById('game-over-message').style.display = 'none';
+            }
+            
+            // 키보드 상태 업데이트 (자신의 게임인 경우)
+            if (data.username === username && data.feedback_history) {
+                resetKeyboard();
+                data.feedback_history.forEach(history => {
+                    updateKeyboard(history.guess, history.feedback);
+                });
+            }
+        });
+        
+        socket.on('error', (data) => {
+            alert(data.message);
+            const guessInput = document.getElementById('guess-input');
+            guessInput.classList.add('shake');
+            setTimeout(() => {
+                guessInput.classList.remove('shake');
+            }, 500);
+        });
+        
+        socket.on('game_restarted', (data) => {
+            if (data.username === username) {
+                gameStatus = 'playing';
+                currentAttempt = 0;
+                document.getElementById('game-status').textContent = '진행 중';
+                document.getElementById('attempts-count').textContent = maxAttempts;
+                document.getElementById('game-over-message').style.display = 'none';
+                document.getElementById('restart-btn').style.display = 'none';
+                document.getElementById('guess-input').disabled = false;
+                document.getElementById('submit-btn').disabled = false;
+                initializeGameBoard();
+                resetKeyboard();
+            } else if (data.username === currentViewingPlayer) {
+                // 관전 중인 플레이어가 게임을 재시작한 경우
+                document.getElementById('game-status').textContent = '진행 중';
+                document.getElementById('attempts-count').textContent = maxAttempts;
+                document.getElementById('game-over-message').style.display = 'none';
+                initializeGameBoard();
+            }
+        });
+        
+        // 단어 제출 이벤트
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            const guessInput = document.getElementById('guess-input');
+            const guess = guessInput.value.trim();
+            
+            if (guess.length === 2) {
+                socket.emit('submit_guess', { room: roomName, username: username, guess: guess });
+                guessInput.value = '';
+            } else {
+                guessInput.classList.add('shake');
+                setTimeout(() => {
+                    guessInput.classList.remove('shake');
+                }, 500);
+                alert('두 글자를 입력하세요.');
+            }
+        });
+        
+        // 엔터 키로 제출
+        document.getElementById('guess-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('submit-btn').click();
+            }
+        });
+        
+        // 새 게임 시작
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            socket.emit('restart_game', { room: roomName, username: username });
+        });
+        
+        // 가상 키보드 클릭 이벤트
+        function initializeKeyboard() {
+            // 각 키에 이벤트 리스너 추가
+            document.querySelectorAll('.key').forEach(key => {
+                key.addEventListener('click', function() {
+                    if (currentViewingPlayer !== username) return;
+                    if (gameStatus !== 'playing') return;
+                    
+                    const char = this.getAttribute('data-char');
+                    const input = document.getElementById('guess-input');
+                    
+                    // 커서 위치 가져오기
+                    const cursorPos = input.selectionStart;
+                    const value = input.value;
+                    
+                    // 선택된 위치에 문자 삽입
+                    input.value = value.substring(0, cursorPos) + char + value.substring(input.selectionEnd);
+                    
+                    // 커서 위치 조정
+                    const newPos = cursorPos + char.length;
+                    input.setSelectionRange(newPos, newPos);
+                    
+                    // 입력 필드에 포커스 주기
+                    input.focus();
+                });
+            });
+        }
+        
+        // 초기화
+        window.onload = () => {
+            currentViewingPlayer = username;
+            gameStatus = 'playing';
+            currentAttempt = 0;
+            
+            initializeGameBoard();
+            initializeKeyboard();
+        };
+    </script>
+</body>
+</html>

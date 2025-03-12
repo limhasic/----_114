@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메인 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e0f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #00796b;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005a4f;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        a {
+            color: #00796b;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .logout-btn {
+            background-color: #f44336;
+        }
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>짭근 멀티 프로그램 서버</h1>
+            <div>
+                <span>{{ username }}님 환영합니다!</span>
+                <a href="{{ url_for('logout') }}"><button class="logout-btn">로그아웃</button></a>
+            </div>
+        </div>
+        <p>게임을 시작하려면 아래 버튼을 클릭하세요.</p>
+        
+        <h2>게임 방</h2>
+        <form action="{{ url_for('create_room') }}" method="POST">
+            <div class="form-group">
+                <label for="room_name">방 이름:</label>
+                <input type="text" id="room_name" name="room_name" required>
+            </div>
+            <button type="submit">방 생성</button>
+        </form>
+
+        <h2>현재 방 목록</h2>
+        {% if rooms|length > 0 %}
+            <ul>
+                {% for room in rooms %}
+                    <li><a href="{{ url_for('game', room_name=room) }}">{{ room }}</a></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>현재 생성된 방이 없습니다.</p>
+        {% endif %}
+    </div>
+</body>
+</html> 
