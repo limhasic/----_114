@@ -1,2 +1,2 @@
 
-![설명 텍스트](./images/thum.png)
+![설명 텍스트](./thum.png)
