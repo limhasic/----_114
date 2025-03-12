@@ -191,26 +191,40 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
             background-color: var(--card-color);
-            border-radius: 5px;
+            border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .guess-text {
-            font-size: 1.2em;
+            font-size: 1.4em;
             font-weight: bold;
+            color: var(--text-color);
         }
 
         .hint-container {
             display: flex;
             align-items: center;
+            gap: 10px;
         }
 
         .hint-icon {
-            font-size: 1.5em;
-            margin-left: 10px;
+            font-size: 1.6em;
+            transition: transform 0.2s ease;
+        }
+
+        .hint-icon:hover {
+            transform: scale(1.2);
+        }
+
+        #guess-grid {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: var(--background-color);
+            border-radius: 8px;
+            min-height: 200px;
         }
 
         .player-selector {
@@ -488,6 +502,15 @@
         let gameStatus = 'playing'; // playing, win, lose
         let currentViewingPlayer = username;
         
+        const hintEmojis = {
+            'carrot': '🥕',
+            'mushroom': '🍄',
+            'garlic': '🧄',
+            'eggplant': '🍆',
+            'banana': '🍌',
+            'apple': '🍎'
+        };
+        
         // 게임 보드 초기화
         function initializeGameBoard() {
             const guessGrid = document.getElementById('guess-grid');
@@ -499,9 +522,9 @@
             currentViewingPlayer = selectedUsername;
             document.getElementById('current-player').textContent = selectedUsername;
             
-            const isSpectating = selectedUsername !== username;
+            // 자신을 선택할 경우에도 입력 섹션을 보이도록 수정
             const inputSection = document.getElementById('input-section');
-            inputSection.style.display = isSpectating ? 'none' : 'block';
+            inputSection.style.display = selectedUsername === username ? 'block' : 'none';
             
             // 선택한 플레이어의 게임 상태 요청
             socket.emit('get_player_state', {
@@ -769,30 +792,94 @@
             
         function updateGuessResult(attempt, guess, feedback) {
             const guessGrid = document.getElementById('guess-grid');
-            const resultDiv = document.createElement('div');
-            resultDiv.className = 'guess-result card'; // 카드 스타일 추가
             
+            // 결과 카드 생성
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'guess-result card';
+            
+            // 추측 단어 표시
             const guessText = document.createElement('span');
             guessText.className = 'guess-text';
-            guessText.textContent = guess;
+            guessText.textContent = `${attempt + 1}. ${guess}`;
             
+            // 힌트 컨테이너
             const hintContainer = document.createElement('div');
             hintContainer.className = 'hint-container';
             
+            // 힌트 이모지 추가
             feedback.forEach(hint => {
                 const hintSpan = document.createElement('span');
                 hintSpan.className = 'hint-icon';
                 hintSpan.textContent = getHintEmoji(hint);
+                
+                // 툴팁 추가
+                hintSpan.title = getHintDescription(hint);
+                
                 hintContainer.appendChild(hintSpan);
             });
             
             resultDiv.appendChild(guessText);
             resultDiv.appendChild(hintContainer);
-            guessGrid.appendChild(resultDiv);
+            
+            // 애니메이션 효과로 추가
+            resultDiv.style.opacity = '0';
+            guessGrid.insertBefore(resultDiv, guessGrid.firstChild);
+            
+            // 페이드 인 효과
+            setTimeout(() => {
+                resultDiv.style.transition = 'opacity 0.3s ease';
+                resultDiv.style.opacity = '1';
+            }, 50);
             
             // 키보드 힌트 업데이트
             if (currentViewingPlayer === username) {
                 updateKeyboard(guess, feedback);
+            }
+        }
+        
+        function getHintDescription(hint) {
+            const descriptions = {
+                'carrot': '정확히 일치',
+                'mushroom': '첫 자음 포함 2개 이상 일치',
+                'garlic': '첫 자음 불일치, 나머지 2개 이상 일치',
+                'eggplant': '자음·모음 중 하나만 일치',
+                'banana': '반대편 글자에서 1개 이상 일치',
+                'apple': '완전 불일치'
+            };
+            return descriptions[hint] || '알 수 없는 힌트';
+        }
+
+        // 입력 필드 개선
+        document.getElementById('guess-input').addEventListener('input', function(e) {
+            const input = e.target;
+            const value = input.value;
+            
+            // 한글만 입력 가능하도록
+            input.value = value.replace(/[^가-힣]/g, '');
+            
+            // 2글자 제한
+            if (value.length > 2) {
+                input.value = value.slice(0, 2);
+            }
+        });
+
+        // 게임 상태 표시 개선
+        function updateGameStatus(status, message) {
+            const statusElement = document.getElementById('game-status');
+            const messageElement = document.getElementById('game-over-message');
+            
+            statusElement.textContent = status;
+            if (message) {
+                messageElement.textContent = message;
+                messageElement.style.display = 'block';
+                
+                // 승리/패배에 따른 스타일 변경
+                messageElement.className = 'game-over-message';
+                if (status.includes('승리')) {
+                    messageElement.classList.add('win');
+                } else if (status.includes('패배')) {
+                    messageElement.classList.add('lose');
+                }
             }
         }
         
